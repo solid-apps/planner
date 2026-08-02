@@ -468,6 +468,25 @@
       transition: opacity 0.15s, transform 0.1s;
     }
     .block:hover .b-mark { opacity: 1; }
+    .b-del {
+      position: absolute;
+      top: 3px; right: 3px;
+      width: 20px; height: 20px;
+      display: grid; place-items: center;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s, background 0.15s;
+    }
+    .block:hover .b-del { opacity: 0.8; }
+    .b-del:hover { opacity: 1 !important; color: var(--danger); background: rgba(225, 29, 72, 0.1); }
+    .block .b-done { transition: right 0.15s; }
+    .block:hover .b-done { right: 26px; }
     .b-mark:active { transform: scale(0.95); }
 
     /* ---------- Edit sheet ---------- */
@@ -1204,6 +1223,7 @@
       let date = T.todayKey();
       let blocks = [];
       let listeners = [];
+      let lastDeleted = null;
 
       const notify = () => {
         const snap = { columns: [...columns], date, blocks: [...blocks] };
@@ -1278,8 +1298,23 @@
         },
 
         removeBlock(id) {
-          blocks = blocks.filter(b => b.id !== id);
+          const b = blocks.find(x => x.id === id);
+          if (!b) return;
+          lastDeleted = { block: { ...b }, date };
+          blocks = blocks.filter(x => x.id !== id);
           saveDay(); notify();
+          const mod = /Mac/.test(navigator.platform) ? '\u2318Z' : 'Ctrl+Z';
+          toast(`Deleted \u201c${b.title || 'Untitled'}\u201d \u2014 ${mod} to undo`);
+        },
+
+        undoDelete() {
+          if (!lastDeleted) return false;
+          if (lastDeleted.date !== date) { toast('Undo is for a different day'); return false; }
+          blocks.push(lastDeleted.block);
+          lastDeleted = null;
+          saveDay(); notify();
+          toast('Restored');
+          return true;
         },
 
         // "Did it as planned": copy a block into the Did column, marked done.
@@ -1376,6 +1411,14 @@
     const hideXlogin = () => document.body.classList.remove('xl-open');
     document.addEventListener('xlogin', hideXlogin);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideXlogin(); });
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (planner.undoDelete()) e.preventDefault();
+      }
+    });
+
     document.addEventListener('click', (e) => {
       if (!document.body.classList.contains('xl-open')) return;
       const t = e.target;
@@ -1475,8 +1518,14 @@
           aria-label=${`${b.title || 'Untitled'} ${T.disp(b.start)} to ${T.disp(b.end)}`}
           onPointerDown=${(e) => onPointerDown(e, b, 'move')}
           onDblClick=${() => onEdit(b)}
-          onKeyDown=${(e) => { if (e.key === 'Enter') onEdit(b); }}
+          onKeyDown=${(e) => {
+            if (e.key === 'Enter') onEdit(b);
+            if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); planner.removeBlock(b.id); }
+          }}
         >
+          <button type="button" class="b-del" title="Delete block" aria-label="Delete ${b.title || 'block'}"
+            onPointerDown=${(e) => e.stopPropagation()}
+            onClick=${(e) => { e.stopPropagation(); planner.removeBlock(b.id); }}>\u2715</button>
           <div class="handle top" onPointerDown=${(e) => { e.stopPropagation(); onPointerDown(e, b, 'resize-top'); }}></div>
           <div class="b-title" title=${b.title || 'Untitled'}>${b.title || 'Untitled'}</div>
           ${showTime && html`<div class="b-time">${T.disp(b.start)} – ${T.disp(b.end)}</div>`}

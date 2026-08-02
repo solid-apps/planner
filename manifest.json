@@ -1,0 +1,14 @@
+{
+  "name": "planner",
+  "short_name": "planner",
+  "description": "Day planner — plan vs. did, 24h board with zoomable views, synced to your Solid pod",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4fb",
+  "theme_color": "#f3f4fb",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

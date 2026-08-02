@@ -1,0 +1,15 @@
+{
+  "name": "solid-planner",
+  "version": "0.0.1",
+  "description": "Day planner — plan vs. did, 24h board with zoomable views, synced to your Solid pod",
+  "license": "AGPL-3.0-only",
+  "author": "solid-apps",
+  "repository": { "type": "git", "url": "https://github.com/solid-apps/planner" },
+  "homepage": "https://solid-apps.github.io/planner",
+  "keywords": ["planner", "day-planner", "time-blocking", "pwa", "solid", "preact"],
+  "type": "module",
+  "main": "index.html",
+  "files": ["index.html"],
+  "scripts": { "start": "npx serve .", "dev": "npx serve ." },
+  "engines": { "node": ">=18" }
+}

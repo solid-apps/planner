@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planner — plan your day, see what you did</title>
+  <meta name="description" content="A day planner with a 24-hour board: plan blocks in one column, record what you actually did in another, add more columns, zoom from the whole day down to a focused 90 minutes. Your data lives in your Solid pod.">
+  <link rel="canonical" href="https://solid-apps.github.io/planner/">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#f3f4fb">
+  <style>
+/* SolidKit v1.0 vendored — do not edit; canonical: solid-apps.github.io/kit */
+/* SolidKit v1.0 — safety layer only. No palette, no typography, no layout:
+ * light apps stay light, dark apps stay dark. Load BEFORE the app's own
+ * style.css so an app can still override anything here.
+ * Canonical copy: solid-apps.github.io/kit/kit.css (vendor per app). */
+
+/* The hidden attribute always wins. Half the estate had `display:flex`
+ * rules silently defeating [hidden] — ghost panels, signed-out composers. */
+[hidden] { display: none !important; }
+
+/* Keyboard users always get a focus ring. currentColor keeps it legible on
+ * any background without imposing an accent. Apps with their own richer
+ * :focus-visible rules override this by specificity or order. */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Respect reduced-motion globally. Gameplay animations that must run can
+ * opt out with .sk-motion-ok. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.sk-motion-ok),
+  *:not(.sk-motion-ok)::before,
+  *:not(.sk-motion-ok)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Long unbroken identifiers (WebIDs, npubs, URLs) may wrap anywhere when a
+ * container opts in — shared utility so apps stop re-inventing it. */
+.sk-wrap-any { overflow-wrap: anywhere; min-width: 0; }
+
+/* Single-line ellipsis truncation utility (pair with a title attribute). */
+.sk-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Screen-reader-only text. */
+.sk-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+  </style>
+  <style>
+    :root {
+      --bg: #f3f4fb;
+      --bg-soft: #f6f7fc;
+      --card: #ffffff;
+      --card-border: rgba(17, 24, 39, 0.07);
+      --text: #171a2b;
+      --text-dim: #646e85;
+      --accent: #4f46e5;
+      --accent-bright: #818cf8;
+      --accent-soft: rgba(79, 70, 229, 0.09);
+      --accent-deep: #3730a3;
+      --did: #0d9e6e;
+      --did-soft: rgba(13, 158, 110, 0.10);
+      --danger: #e11d48;
+      --radius: 16px;
+      --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 8px 24px rgba(16, 24, 40, 0.06);
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      --rail-w: 56px;
+      --header-h: 128px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { color-scheme: light; }
+
+    body {
+      font-family: var(--font);
+      background: linear-gradient(180deg, #f7f8fd 0%, var(--bg) 55%, #eef0f9 100%);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(110px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 700px; height: 500px;
+      top: -160px; left: 4%;
+      background: rgba(129, 140, 248, 0.20);
+    }
+    body::after {
+      width: 660px; height: 480px;
+      top: 20%; right: 0%;
+      background: rgba(79, 70, 229, 0.10);
+    }
+
+    #app { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; }
+
+    /* ---------- Header ---------- */
+    .topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 20px 10px;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 650;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+    .brand-dot {
+      width: 30px; height: 30px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-bright), var(--accent));
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .brand-dot svg { width: 17px; height: 17px; }
+
+    .datenav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+    .datenav .date-title {
+      font-size: 0.9375rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      min-width: 168px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .btn-nav {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-nav:hover { color: var(--accent); background: var(--accent-soft); }
+    .btn-today {
+      padding: 7px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-today:hover { color: var(--accent); background: var(--accent-soft); }
+    .btn-today.is-today { color: var(--accent); border-color: rgba(79, 70, 229, 0.3); }
+
+    .spacer { flex: 1; }
+
+    .zoomctl {
+      display: flex;
+      height: 34px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--card);
+    }
+    .zoomctl button {
+      padding: 0 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 0.8125rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .zoomctl button + button { border-left: 1px solid var(--card-border); }
+    .zoomctl button.active { background: var(--accent); color: #fff; }
+
+    .btn-auth {
+      background: transparent;
+      color: var(--accent-deep);
+      border: 1px solid rgba(79, 70, 229, 0.35);
+      border-radius: 9999px;
+      padding: 7px 16px;
+      font-family: var(--font);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-auth:hover { background: var(--accent-soft); }
+
+    /* ---------- Board ---------- */
+    .board-wrap {
+      flex: 1;
+      min-height: 0;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 20px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .colheads {
+      flex-shrink: 0;
+      display: flex;
+      padding-left: var(--rail-w);
+      gap: 10px;
+    }
+    .colhead {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 12px;
+      font-size: 0.75rem;
+      font-weight: 650;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-radius: 12px 12px 0 0;
+    }
+    .colhead .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .colhead .cnt {
+      font-weight: 600;
+      color: var(--text-dim);
+      opacity: 0.7;
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .btn-delcol {
+      border: none; background: transparent; color: var(--text-dim);
+      cursor: pointer; font-size: 0.8rem; line-height: 1; padding: 2px 4px;
+      border-radius: 6px; opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .colhead:hover .btn-delcol { opacity: 0.7; }
+    .btn-delcol:hover { color: var(--danger); opacity: 1 !important; }
+    .btn-addcol {
+      flex-shrink: 0;
+      width: 34px;
+      border: 1px dashed rgba(17, 24, 39, 0.18);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .btn-addcol:hover { color: var(--accent); border-color: rgba(79, 70, 229, 0.4); background: var(--accent-soft); }
+    .addcol-input {
+      flex-shrink: 0;
+      width: 130px;
+      padding: 6px 10px;
+      border: 1px solid rgba(79, 70, 229, 0.4);
+      border-radius: 10px;
+      background: #fff;
+      font-family: var(--font);
+      font-size: 0.8125rem;
+    }
+    .addcol-input:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+
+    .board {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      position: relative;
+      overscroll-behavior: contain;
+    }
+
+    .canvas {
+      position: relative;
+      display: flex;
+      padding-left: var(--rail-w);
+    }
+
+    /* Time rail */
+    .rail {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: var(--rail-w);
+    }
+    .rail .hr {
+      position: absolute;
+      right: 10px;
+      transform: translateY(-50%);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: #8a93a8;
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+    }
+
+    /* Hour grid lines span the full canvas */
+    .gridline {
+      position: absolute;
+      left: var(--rail-w); right: 0;
+      border-top: 1px solid rgba(17, 24, 39, 0.055);
+      pointer-events: none;
+    }
+    .gridline.half { border-top-style: dashed; border-top-color: rgba(17, 24, 39, 0.035); }
+
+    .col {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+      border-left: 1px solid rgba(17, 24, 39, 0.05);
+    }
+    .col:first-of-type { border-left: none; }
+
+    /* Now line */
+    .nowline {
+      position: absolute;
+      left: calc(var(--rail-w) - 8px); right: 0;
+      height: 0;
+      border-top: 2px solid var(--danger);
+      z-index: 5;
+      pointer-events: none;
+    }
+    .nowline::before {
+      content: '';
+      position: absolute;
+      left: -4px; top: -5px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    /* ---------- Blocks ---------- */
+    .block {
+      position: absolute;
+      left: 6px; right: 6px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(79, 70, 229, 0.28);
+      border-left: 3px solid var(--accent);
+      padding: 4px 8px;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: box-shadow 0.15s;
+      touch-action: none;
+    }
+    .block:hover { box-shadow: 0 3px 12px rgba(79, 70, 229, 0.18); z-index: 3; }
+    .block.dragging { opacity: 0.75; cursor: grabbing; z-index: 10; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.22); }
+    .block.ghost {
+      background: rgba(79, 70, 229, 0.06);
+      border-style: dashed;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .block .b-title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .block .b-time {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .block .b-notes {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: pre-line;
+    }
+    .block .b-done {
+      position: absolute;
+      top: 5px; right: 6px;
+      font-size: 0.6875rem;
+      color: var(--did);
+      font-weight: 700;
+    }
+    .block .handle {
+      position: absolute;
+      left: 0; right: 0;
+      height: 7px;
+      cursor: ns-resize;
+      touch-action: none;
+    }
+    .block .handle.top { top: -2px; }
+    .block .handle.bottom { bottom: -2px; }
+
+    /* Column-family styling: Did-column blocks go emerald; extra columns cycle hues */
+    .block.tint-did { background: var(--did-soft); border-color: rgba(13, 158, 110, 0.3); border-left-color: var(--did); }
+    .block.tint-2 { background: rgba(217, 119, 6, 0.09); border-color: rgba(217, 119, 6, 0.3); border-left-color: #d97706; }
+    .block.tint-3 { background: rgba(2, 132, 199, 0.09); border-color: rgba(2, 132, 199, 0.3); border-left-color: #0284c7; }
+    .block.tint-4 { background: rgba(190, 24, 93, 0.08); border-color: rgba(190, 24, 93, 0.28); border-left-color: #be185d; }
+
+    .b-mark {
+      position: absolute;
+      bottom: 4px; right: 6px;
+      border: none;
+      border-radius: 8px;
+      background: var(--did);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .block:hover .b-mark { opacity: 1; }
+    .b-mark:active { transform: scale(0.95); }
+
+    /* ---------- Edit sheet ---------- */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 20, 40, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 40;
+    }
+    .backdrop.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 105%);
+      width: min(480px, 100vw - 24px);
+      background: #fff;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -12px 40px rgba(16, 24, 40, 0.18);
+      padding: 20px 20px 24px;
+      transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 41;
+    }
+    .sheet.open { transform: translate(-50%, 0); }
+    .sheet h2 {
+      font-size: 0.75rem;
+      font-weight: 650;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .sheet .row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .sheet label {
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    .sheet input[type="text"], .sheet input[type="time"], .sheet select, .sheet textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e2e5f0;
+      border-radius: 10px;
+      background: var(--bg-soft);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .sheet textarea { resize: vertical; min-height: 64px; font-variant-numeric: normal; }
+    .sheet input:focus, .sheet select:focus, .sheet textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .sheet .grow { flex: 1; min-width: 0; }
+    .sheet .done-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.875rem; font-weight: 600;
+      padding: 4px 0 2px;
+      cursor: pointer;
+    }
+    .sheet .done-row input { width: 16px; height: 16px; accent-color: var(--did); }
+    .sheet .actions { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-save {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-save:hover { background: var(--accent-deep); }
+    .btn-save:active { transform: scale(0.98); }
+    .btn-delete {
+      padding: 12px 16px;
+      border: 1px solid rgba(225, 29, 72, 0.3);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--danger);
+      font-family: var(--font);
+      font-size: 0.875rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-delete:hover { background: rgba(225, 29, 72, 0.07); }
+
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(80px);
+      max-width: min(420px, 100vw - 32px);
+      padding: 11px 20px;
+      border-radius: 9999px;
+      background: #1d2033;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f3f4fb;
+      font-size: 0.875rem;
+      text-align: center;
+      overflow-wrap: anywhere;
+      opacity: 0;
+      transition: transform 0.25s, opacity 0.25s;
+      z-index: 60;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* xlogin renders its pill AND its modal in one closed-shadow host —
+     * hidden by default, revealed only while the modal is in use. */
+    #xlogin-widget { display: none; }
+    body.xl-open #xlogin-widget { display: block; }
+
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 720px) {
+      .topbar { flex-wrap: wrap; gap: 10px; }
+      .datenav .date-title { min-width: 0; }
+      .zoomctl button { padding: 0 10px; }
+    }
+  </style>
+  <script src="https://unpkg.com/xlogin"></script>
+</head>
+<body>
+  <div id="app"></div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+/* SolidKit v1.0 vendored — do not edit; canonical: solid-apps.github.io/kit */
+/* SolidKit v1.0 — shared hardening + live-sync kit for solid-apps.
+ *
+ * Canonical copy: solid-apps.github.io/kit/kit.js  (vendor a copy per app,
+ * like intents.js — no build step, no runtime dependency on this URL).
+ * Classic script: exposes window.SolidKit; safe to load before or after
+ * xlogin. ES-module apps can read window.SolidKit as well.
+ *
+ * Everything here exists because the 2026-07 estate audit found the same
+ * bugs re-implemented (and re-broken) across ~75 apps:
+ *   esc/escAttr   – HTML escaping that also covers quotes (attr breakout)
+ *   safeUrl       – scheme gate; javascript:/data: from pod data never
+ *                   becomes a live href/src
+ *   safeDecode    – decodeURIComponent that can't throw on a stray '%'
+ *   loadDoc       – fetch wrapper that NEVER conflates "missing" (404/410)
+ *                   with "failed" (network/5xx) — the #1 data-loss bug
+ *   toaster       – honest toast bound to the app's own element; timers
+ *                   don't stack, errors persist longer
+ *   copyText      – clipboard that reports the truth (with fallback)
+ *   debounce      – with .flush() and .cancel(), so navigation/pagehide can
+ *                   commit pending work instead of dropping it
+ *   subscribe     – solid-0.1 Updates-Via WebSocket manager: one socket per
+ *                   endpoint, resubscribes on reconnect, capped backoff,
+ *                   returns an unsubscribe function
+ */
+(function () {
+  "use strict";
+  if (window.SolidKit) return; // idempotent under double-include
+
+  /* ---------------- escaping & URL hygiene ---------------- */
+
+  var esc = function (s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  };
+
+  // Attribute-context alias (same escaping; the name documents intent).
+  var escAttr = esc;
+
+  // Return an absolute http(s) URL, or null for anything unsafe/garbled.
+  // Pass extra schemes explicitly when an app really needs them
+  // (e.g. ["http:", "https:", "mailto:"]).
+  var safeUrl = function (u, schemes) {
+    if (u == null) return null;
+    var allow = schemes || ["http:", "https:"];
+    try {
+      var p = new URL(String(u), (typeof location !== "undefined" && location.href) || "https://invalid.local/");
+      return allow.indexOf(p.protocol) !== -1 ? p.href : null;
+    } catch (e) { return null; }
+  };
+
+  var safeDecode = function (s) {
+    if (s == null) return "";
+    try { return decodeURIComponent(s); } catch (e) { return String(s); }
+  };
+
+  /* ---------------- honest document loading ---------------- */
+
+  // loadDoc(fetchFn, url, init?) -> Promise<{
+  //   ok:      true when the request settled conclusively (found OR missing)
+  //   missing: true only for a definite 404/410
+  //   status:  HTTP status (0 for network failure)
+  //   res:     Response (when found)
+  //   text:    body text (when found)
+  //   error:   Error (when ok === false)
+  // }>
+  // Rule the whole estate now follows: only `missing === true` may be
+  // treated as "start empty". `ok === false` must surface an error state and
+  // MUST block any subsequent save from overwriting the remote document.
+  function loadDoc(fetchFn, url, init) {
+    var f = fetchFn || (typeof fetch !== "undefined" ? fetch : null);
+    return Promise.resolve()
+      .then(function () { return f(url, init); })
+      .then(function (res) {
+        if (res.status === 404 || res.status === 410) {
+          return { ok: true, missing: true, status: res.status };
+        }
+        if (!res.ok) {
+          return { ok: false, missing: false, status: res.status,
+                   error: new Error("HTTP " + res.status) };
+        }
+        return res.text().then(function (text) {
+          return { ok: true, missing: false, status: res.status, res: res, text: text };
+        });
+      })
+      .catch(function (error) {
+        return { ok: false, missing: false, status: 0, error: error };
+      });
+  }
+
+  // Same contract, plus JSON parsing. A body that fails to parse is a
+  // FAILURE (ok:false), never "empty" — parse errors were overwriting real
+  // documents in the wild.
+  function loadJson(fetchFn, url, init) {
+    return loadDoc(fetchFn, url, init).then(function (r) {
+      if (!r.ok || r.missing) return r;
+      try { r.data = JSON.parse(r.text); return r; }
+      catch (e) {
+        return { ok: false, missing: false, status: r.status,
+                 error: new Error("unparseable response: " + e.message) };
+      }
+    });
+  }
+
+  /* ---------------- honest UI feedback ---------------- */
+
+  // toaster(el?, showClass?) -> show(msg, opts?)
+  // Binds to the app's existing toast element so visuals stay the app's own.
+  // With no element, lazily creates a minimal accessible one.
+  // opts: { error: bool, ms: number }  (errors default to a longer hold)
+  function toaster(el, showClass) {
+    var timer = 0;
+    var cls = showClass || "show";
+    function ensure() {
+      if (el && el.isConnected !== false) return el;
+      el = document.createElement("div");
+      el.id = "sk-toast";
+      el.setAttribute("style",
+        "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);" +
+        "max-width:min(480px,calc(100vw - 32px));padding:10px 16px;border-radius:10px;" +
+        "background:rgba(20,20,26,.94);color:#f5f5f7;font:13px/1.45 system-ui,sans-serif;" +
+        "box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;display:none;overflow-wrap:anywhere;");
+      document.body.appendChild(el);
+      cls = null; // style-driven fallback uses display toggling
+    }
+    return function show(msg, opts) {
+      opts = opts || {};
+      ensure();
+      el.textContent = String(msg == null ? "" : msg);
+      el.setAttribute("role", "status");
+      el.setAttribute("aria-live", "polite");
+      if (cls) el.classList.add(cls); else el.style.display = "block";
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        if (cls) el.classList.remove(cls); else el.style.display = "none";
+      }, opts.ms || (opts.error ? 6000 : 2600));
+    };
+  }
+
+  // copyText(text) -> Promise<boolean>. Never claim success you didn't have.
+  function copyText(text) {
+    var t = String(text == null ? "" : text);
+    var viaClipboard = (navigator.clipboard && navigator.clipboard.writeText)
+      ? navigator.clipboard.writeText(t).then(function () { return true; }, function () { return false; })
+      : Promise.resolve(false);
+    return viaClipboard.then(function (ok) {
+      if (ok) return true;
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = t;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        var done = document.execCommand("copy");
+        ta.remove();
+        return !!done;
+      } catch (e) { return false; }
+    });
+  }
+
+  /* ---------------- debounce that can't lose work ---------------- */
+
+  function debounce(fn, ms) {
+    var t = 0, pendingArgs = null;
+    function run() {
+      t = 0;
+      var a = pendingArgs; pendingArgs = null;
+      fn.apply(null, a || []);
+    }
+    function d() {
+      pendingArgs = Array.prototype.slice.call(arguments);
+      clearTimeout(t);
+      t = setTimeout(run, ms);
+    }
+    d.flush = function () { if (t) { clearTimeout(t); run(); } };
+    d.cancel = function () { clearTimeout(t); t = 0; pendingArgs = null; };
+    d.pending = function () { return !!t; };
+    return d;
+  }
+
+  /* ---------------- Updates-Via live sync ---------------- */
+
+  // One shared socket per Updates-Via endpoint; per-URL callback sets;
+  // resubscribes everything on reconnect; capped exponential backoff
+  // (2.5s → 30s, reset on a successful open); closes the socket when the
+  // last subscriber leaves.
+  var socks = new Map(); // via -> { ws, subs: Map<url, Set<cb>>, backoff, timer }
+
+  function skOpen(via, entry) {
+    var ws = new WebSocket(via);
+    entry.ws = ws;
+    ws.onopen = function () {
+      entry.backoff = 2500;
+      entry.subs.forEach(function (_cbs, url) { try { ws.send("sub " + url); } catch (e) {} });
+    };
+    ws.onmessage = function (ev) {
+      var m = String(ev.data == null ? "" : ev.data).trim();
+      if (m.slice(0, 4) !== "pub ") return;
+      var cbs = entry.subs.get(m.slice(4));
+      if (cbs) cbs.forEach(function (f) { try { f(); } catch (e) {} });
+    };
+    ws.onclose = function () {
+      if (entry.ws !== ws) return;          // superseded socket: stay quiet
+      entry.ws = null;
+      if (!entry.subs.size) { socks.delete(via); return; }
+      entry.timer = setTimeout(function () { skOpen(via, entry); }, entry.backoff);
+      entry.backoff = Math.min(entry.backoff * 2, 30000);
+    };
+  }
+
+  // subscribe(url, cb, { fetch }) -> Promise<unsubscribe>
+  // Rejects with Error("no Updates-Via") when the server doesn't advertise
+  // the header — callers should catch and simply run without live sync.
+  function subscribe(url, cb, opts) {
+    opts = opts || {};
+    var f = opts.fetch || fetch;
+    return Promise.resolve()
+      .then(function () { return f(url, { method: "HEAD", cache: "no-store" }); })
+      .then(function (res) {
+        var via = res.headers.get("Updates-Via");
+        if (!via) throw new Error("no Updates-Via");
+        var entry = socks.get(via);
+        if (!entry) {
+          entry = { ws: null, subs: new Map(), backoff: 2500, timer: 0 };
+          socks.set(via, entry);
+          skOpen(via, entry);
+        }
+        var isNewUrl = !entry.subs.has(url);
+        if (isNewUrl) entry.subs.set(url, new Set());
+        entry.subs.get(url).add(cb);
+        if (isNewUrl && entry.ws && entry.ws.readyState === 1) {
+          try { entry.ws.send("sub " + url); } catch (e) {}
+        }
+        return function unsubscribe() {
+          var cbs = entry.subs.get(url);
+          if (!cbs) return;
+          cbs.delete(cb);
+          if (!cbs.size) entry.subs.delete(url);
+          if (!entry.subs.size) {
+            clearTimeout(entry.timer);
+            var w = entry.ws;
+            entry.ws = null;               // prevent the close handler reconnecting
+            socks.delete(via);
+            if (w) { try { w.close(); } catch (e) {} }
+          }
+        };
+      });
+  }
+
+  window.SolidKit = {
+    version: "1.0.0",
+    esc: esc, escAttr: escAttr,
+    safeUrl: safeUrl, safeDecode: safeDecode,
+    loadDoc: loadDoc, loadJson: loadJson,
+    toaster: toaster, copyText: copyText,
+    debounce: debounce, subscribe: subscribe,
+  };
+})();
+  </script>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect, useRef, useCallback } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+
+    const html = htm.bind(h);
+    const toast = SolidKit.toaster(document.getElementById('toast'), 'show');
+
+    // ============================================
+    // TIME UTILITIES (all block times are minutes-from-midnight)
+    // ============================================
+
+    const T = {
+      pad: (n) => String(n).padStart(2, '0'),
+      // minutes -> "HH:MM" (24h storage form)
+      hm(min) { return `${T.pad(Math.floor(min / 60))}:${T.pad(min % 60)}`; },
+      // "HH:MM" -> minutes
+      min(hm) { const [h, m] = String(hm).split(':').map(Number); return (h || 0) * 60 + (m || 0); },
+      // minutes -> "9:05 AM" display
+      disp(min) {
+        const h = Math.floor(min / 60) % 24, m = min % 60;
+        const ap = h >= 12 ? 'PM' : 'AM';
+        return `${h % 12 || 12}:${T.pad(m)} ${ap}`;
+      },
+      railLabel(h) { return h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`; },
+      snap(min, step) { return Math.round(min / step) * step; },
+      clamp(min, lo, hi) { return Math.max(lo, Math.min(hi, min)); },
+      todayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${T.pad(d.getMonth() + 1)}-${T.pad(d.getDate())}`;
+      },
+      keyToDate(key) { return new Date(key + 'T12:00:00'); },
+      shiftKey(key, days) {
+        const d = T.keyToDate(key);
+        d.setDate(d.getDate() + days);
+        return `${d.getFullYear()}-${T.pad(d.getMonth() + 1)}-${T.pad(d.getDate())}`;
+      },
+      title(key) {
+        const d = T.keyToDate(key);
+        const today = T.todayKey();
+        const name = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        if (key === today) return `Today · ${name}`;
+        if (key === T.shiftKey(today, 1)) return `Tomorrow · ${name}`;
+        if (key === T.shiftKey(today, -1)) return `Yesterday · ${name}`;
+        return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+      },
+    };
+
+    const uid = () => (crypto.randomUUID ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).slice(2, 10));
+
+    // ============================================
+    // DATA MODEL
+    // ============================================
+    // In-memory:
+    //   columns: [{ id, name }]                     (global set; 'plan' and 'did' are built in)
+    //   blocks:  [{ id, col, start, end, title, notes, done }]  (per day; start/end = minutes)
+    //
+    // Pod (per day): an ical:Vcalendar of ical:Vevent components — the same
+    // model the estate's calendar/tasks/alarm apps use. Each block:
+    //   start/end -> dtstart/dtend (floating local time, RFC 5545 semantics)
+    //   title     -> summary
+    //   notes     -> description
+    //   column    -> categories (real iCal property for grouping)
+    //   done      -> urn:solid:done (prototyping predicate per urn-solid spec)
+    // Columns live in one global doc (schema:ItemList of ListItems).
+
+    const DEFAULT_COLUMNS = [
+      { id: 'plan', name: 'Plan' },
+      { id: 'did', name: 'Did' },
+    ];
+
+    const ICAL_CONTEXT = {
+      ical: 'http://www.w3.org/2002/12/cal/ical#',
+      dct: 'http://purl.org/dc/terms/',
+      summary: 'ical:summary', description: 'ical:description',
+      dtstart: 'ical:dtstart', dtend: 'ical:dtend',
+      categories: 'ical:categories', component: 'ical:component',
+      created: 'dct:created', modified: 'dct:modified', name: 'dct:title',
+      done: 'urn:solid:done',
+      Vcalendar: 'ical:Vcalendar', Vevent: 'ical:Vevent'
+    };
+
+    const COLUMNS_CONTEXT = {
+      schema: 'https://schema.org/',
+      dct: 'http://purl.org/dc/terms/',
+      name: 'dct:title', position: 'schema:position',
+      modified: 'dct:modified',
+    };
+
+    // ============================================
+    // STORAGE BACKENDS
+    // ============================================
+    // Contract (estate rule via SolidKit.loadDoc): load() resolves to
+    //   { ok: true, data }            found
+    //   { ok: true, missing: true }   definitely absent — caller starts fresh
+    //   { ok: false }                 FAILED — caller keeps current state,
+    //                                 and saves to this key stay latched shut
+    //                                 until a load succeeds.
+
+    const StorageBackends = {
+      localStorage: {
+        name: 'localStorage',
+        async load(key) {
+          try {
+            const raw = localStorage.getItem('planner:' + key);
+            if (raw === null) return { ok: true, missing: true };
+            return { ok: true, data: JSON.parse(raw) };
+          } catch (e) {
+            console.error('localStorage load error:', e);
+            return { ok: false };
+          }
+        },
+        async save(key, data) {
+          try {
+            localStorage.setItem('planner:' + key, JSON.stringify(data));
+            return true;
+          } catch (e) {
+            console.error('localStorage save error:', e);
+            return false;
+          }
+        },
+      },
+
+      solid: {
+        name: 'solid',
+        baseUrl: null,
+        seededAcl: false,
+        loadFailed: new Set(),   // per-key save latch
+        lastWritten: new Map(),  // per-key echo-loop dedupe
+        foreign: new Map(),      // per-day non-planner components, carried through saves
+
+        _reset() {
+          this.baseUrl = null;
+          this.seededAcl = false;
+          this.loadFailed = new Set();
+          this.lastWritten = new Map();
+          this.foreign = new Map();
+        },
+
+        _base() {
+          if (this.baseUrl) return this.baseUrl;
+          const xl = window.xlogin;
+          if (!xl || xl.type !== 'solid' || !xl.id) return null;
+          this.baseUrl = new URL(xl.id).origin + '/public/planner/';
+          return this.baseUrl;
+        },
+
+        _urlFor(key) {
+          const base = this._base();
+          if (!base) return null;
+          return key === 'columns' ? base + 'columns.jsonld' : base + key.slice(4) + '.jsonld';
+        },
+
+        // Owner-only container ACL with acl:default so day docs inherit —
+        // planner data is private; only seed on a definite 404/410.
+        async _ensureAcl() {
+          if (this.seededAcl) return;
+          const base = this._base();
+          if (!base) return;
+          const aclUrl = base + '.acl';
+          try {
+            const r = await window.xlogin.authFetch(aclUrl, { method: 'HEAD' });
+            if (r.status === 404 || r.status === 410) {
+              await window.xlogin.authFetch(aclUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/ld+json' },
+                body: JSON.stringify({
+                  '@context': { acl: 'http://www.w3.org/ns/auth/acl#' },
+                  '@graph': [
+                    { '@id': '#owner', '@type': 'acl:Authorization',
+                      'acl:agent': { '@id': '/profile/card.jsonld#me' },
+                      'acl:accessTo': { '@id': './' },
+                      'acl:default': { '@id': './' },
+                      'acl:mode': [{ '@id': 'acl:Read' }, { '@id': 'acl:Write' }, { '@id': 'acl:Control' }] }
+                  ]
+                })
+              });
+              this.seededAcl = true;
+            } else if (r.ok) {
+              this.seededAcl = true;
+            }
+            // transient failure: stay unseeded, retry next call
+          } catch {}
+        },
+
+        _dayToJsonld(key, blocks) {
+          const date = key.slice(4);
+          return {
+            '@context': ICAL_CONTEXT,
+            '@id': '#this',
+            '@type': 'Vcalendar',
+            name: 'Planner ' + date,
+            modified: new Date().toISOString(),
+            component: [
+              ...blocks.map(b => {
+                const c = {
+                  '@id': '#block-' + b.id,
+                  '@type': ['Vevent', 'urn:solid:PlanBlock'],
+                  dtstart: date + 'T' + T.hm(b.start),
+                  dtend: date + 'T' + T.hm(b.end),
+                  categories: b.col,
+                };
+                if (b.title) c.summary = b.title;
+                if (b.notes) c.description = b.notes;
+                if (b.done) c.done = true;
+                if (b.createdAt) c.created = b.createdAt;
+                return c;
+              }),
+              ...(this.foreign.get(key) || [])
+            ]
+          };
+        },
+
+        _isBlock(c) {
+          const types = [].concat((c && c['@type']) || []);
+          return types.includes('urn:solid:PlanBlock') ||
+                 String((c && c['@id']) || '').startsWith('#block-');
+        },
+
+        _dayFromJsonld(key, doc) {
+          const comps = Array.isArray(doc.component) ? doc.component : (doc.component ? [doc.component] : []);
+          this.foreign.set(key, comps.filter(c => !this._isBlock(c)));
+          return comps.filter(c => this._isBlock(c)).map(c => {
+            const frag = String(c['@id'] || '');
+            return {
+              id: frag.startsWith('#block-') ? frag.slice(7) : uid(),
+              col: c.categories || 'plan',
+              start: T.min(String(c.dtstart || '').slice(11, 16) || '00:00'),
+              end: T.min(String(c.dtend || '').slice(11, 16) || '00:30'),
+              title: c.summary || '',
+              notes: c.description || '',
+              done: !!c.done,
+              createdAt: c.created || undefined,
+            };
+          });
+        },
+
+        _columnsToJsonld(cols) {
+          return {
+            '@context': COLUMNS_CONTEXT,
+            '@id': '#this',
+            '@type': 'schema:ItemList',
+            name: 'Planner columns',
+            modified: new Date().toISOString(),
+            'schema:itemListElement': cols.map((c, i) => ({
+              '@id': '#col-' + c.id,
+              '@type': 'schema:ListItem',
+              name: c.name,
+              position: i + 1,
+            }))
+          };
+        },
+
+        _columnsFromJsonld(doc) {
+          const items = doc['schema:itemListElement'] || [];
+          const cols = (Array.isArray(items) ? items : [items])
+            .sort((a, b) => (a.position || 0) - (b.position || 0))
+            .map(it => ({
+              id: String(it['@id'] || '').replace(/^#col-/, '') || uid(),
+              name: it.name || 'Column',
+            }));
+          return cols.length ? cols : null;
+        },
+
+        async load(key) {
+          const url = this._urlFor(key);
+          if (!url) return { ok: false };
+          const r = await SolidKit.loadDoc((u, i) => window.xlogin.authFetch(u, i), url, { cache: 'no-store' });
+          if (!r.ok) {
+            console.error('solid load failed:', key, r.status, r.error);
+            this.loadFailed.add(key);
+            return { ok: false };
+          }
+          this.loadFailed.delete(key);
+          if (r.missing) return { ok: true, missing: true };
+          try {
+            const doc = JSON.parse(r.text);
+            const data = key === 'columns' ? this._columnsFromJsonld(doc) : this._dayFromJsonld(key, doc);
+            if (data === null) return { ok: true, missing: true }; // empty columns doc = defaults
+            return { ok: true, data };
+          } catch (e) {
+            console.error('solid load: unparseable doc:', key, e);
+            this.loadFailed.add(key);
+            return { ok: false };
+          }
+        },
+
+        async save(key, data) {
+          const url = this._urlFor(key);
+          if (!url) return false;
+          // A failed load latches saves shut for that key — stale or empty
+          // in-memory state must never overwrite the remote doc.
+          if (this.loadFailed.has(key)) {
+            console.error('solid save blocked (last load failed):', key);
+            return false;
+          }
+          await this._ensureAcl();
+          const fingerprint = JSON.stringify(data);
+          if (fingerprint === this.lastWritten.get(key)) return true;
+          this.lastWritten.set(key, fingerprint);
+          try {
+            const body = JSON.stringify(
+              key === 'columns' ? this._columnsToJsonld(data) : this._dayToJsonld(key, data), null, 2);
+            const r = await window.xlogin.authFetch(url, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/ld+json' },
+              body
+            });
+            if (!r.ok) this.lastWritten.delete(key);
+            return r.ok;
+          } catch (e) {
+            console.error('solid save error:', key, e);
+            this.lastWritten.delete(key);
+            return false;
+          }
+        },
+      }
+    };
+
+    // ============================================
+    // PLANNER SERVICE
+    // ============================================
+
+    const createPlannerService = () => {
+      let backend = StorageBackends.localStorage;
+      let columns = [...DEFAULT_COLUMNS];
+      let date = T.todayKey();
+      let blocks = [];
+      let listeners = [];
+
+      const notify = () => {
+        const snap = { columns: [...columns], date, blocks: [...blocks] };
+        listeners.forEach(fn => fn(snap));
+      };
+
+      // Debounced day-save; flushed on pagehide so navigation can't drop work.
+      const saveDay = SolidKit.debounce(async () => {
+        const ok = await backend.save('day:' + date, blocks);
+        if (!ok && backend.name === 'solid') toast("Couldn't save to your pod — will retry on next change", { error: true });
+      }, 600);
+      window.addEventListener('pagehide', () => saveDay.flush());
+      document.addEventListener('visibilitychange', () => { if (document.hidden) saveDay.flush(); });
+
+      const saveColumns = async () => {
+        const ok = await backend.save('columns', columns);
+        if (!ok && backend.name === 'solid') toast("Couldn't save columns to your pod", { error: true });
+      };
+
+      async function loadAll() {
+        const [c, d] = await Promise.all([backend.load('columns'), backend.load('day:' + date)]);
+        if (c.ok) columns = c.missing ? [...DEFAULT_COLUMNS] : c.data;
+        else toast("Couldn't load columns — keeping the current set", { error: true });
+        if (d.ok) blocks = d.missing ? [] : d.data;
+        else toast("Couldn't load this day — changes are paused until it loads", { error: true });
+        notify();
+      }
+
+      return {
+        subscribe(fn) { listeners.push(fn); return () => { listeners = listeners.filter(l => l !== fn); }; },
+        getState() { return { columns: [...columns], date, blocks: [...blocks] }; },
+        getDate() { return date; },
+
+        async init() { await loadAll(); },
+
+        async setBackend(b) {
+          saveDay.flush();
+          backend = b;
+          await loadAll();
+        },
+
+        async setDate(key) {
+          saveDay.flush();
+          date = key;
+          const d = await backend.load('day:' + date);
+          if (d.ok) blocks = d.missing ? [] : d.data;
+          else { blocks = []; toast("Couldn't load this day — changes are paused until it loads", { error: true }); }
+          notify();
+        },
+
+        async reload() {
+          const d = await backend.load('day:' + date);
+          if (d.ok) { blocks = d.missing ? [] : d.data; notify(); }
+        },
+        async reloadColumns() {
+          const c = await backend.load('columns');
+          if (c.ok) { columns = c.missing ? [...DEFAULT_COLUMNS] : c.data; notify(); }
+        },
+
+        addBlock(col, start, end, title = '') {
+          const b = { id: uid(), col, start, end, title, notes: '', done: false, createdAt: new Date().toISOString() };
+          blocks.push(b);
+          saveDay(); notify();
+          return b;
+        },
+
+        updateBlock(id, patch) {
+          const b = blocks.find(x => x.id === id);
+          if (!b) return;
+          Object.assign(b, patch);
+          saveDay(); notify();
+        },
+
+        removeBlock(id) {
+          blocks = blocks.filter(b => b.id !== id);
+          saveDay(); notify();
+        },
+
+        // "Did it as planned": copy a block into the Did column, marked done.
+        markDid(id) {
+          const b = blocks.find(x => x.id === id);
+          if (!b) return;
+          const already = blocks.find(x => x.col === 'did' && x.title === b.title && x.start === b.start && x.end === b.end);
+          if (already) { toast('Already recorded in Did'); return; }
+          blocks.push({ ...b, id: uid(), col: 'did', done: true, createdAt: new Date().toISOString() });
+          saveDay(); notify();
+          toast(`Recorded in Did — ${b.title || 'block'}`);
+        },
+
+        addColumn(name) {
+          const id = uid();
+          columns.push({ id, name: name || 'Column ' + (columns.length + 1) });
+          saveColumns(); notify();
+        },
+
+        removeColumn(id) {
+          if (id === 'plan' || id === 'did') { toast('Plan and Did are built in'); return; }
+          if (blocks.some(b => b.col === id)) { toast('Column has blocks — move or delete them first', { error: true }); return; }
+          columns = columns.filter(c => c.id !== id);
+          saveColumns(); notify();
+        },
+
+        flush() { saveDay.flush(); },
+      };
+    };
+
+    const planner = createPlannerService();
+
+    // ============================================
+    // SOLID INTEGRATION (backend switch + live sync + migration)
+    // ============================================
+
+    let unsubDay = null, unsubCols = null;
+
+    async function subscribeLive() {
+      if (unsubDay) { unsubDay(); unsubDay = null; }
+      if (unsubCols) { unsubCols(); unsubCols = null; }
+      const solid = StorageBackends.solid;
+      const base = solid._base();
+      if (!base) return;
+      const af = (u, i) => window.xlogin.authFetch(u, i);
+      try {
+        unsubDay = await SolidKit.subscribe(base + planner.getDate() + '.jsonld', () => planner.reload(), { fetch: af });
+      } catch {} // no Updates-Via: run without live sync
+      try {
+        unsubCols = await SolidKit.subscribe(base + 'columns.jsonld', () => planner.reloadColumns(), { fetch: af });
+      } catch {}
+    }
+
+    // One-way local -> pod migration on first sign-in; a FAILED pre-check
+    // read aborts (we cannot know whether the pod has data).
+    async function migrateLocalToSolid() {
+      const local = StorageBackends.localStorage;
+      const solid = StorageBackends.solid;
+      const today = 'day:' + T.todayKey();
+
+      const lc = await local.load('columns');
+      if (lc.ok && !lc.missing && lc.data.length > DEFAULT_COLUMNS.length) {
+        const pc = await solid.load('columns');
+        if (pc.ok && pc.missing) await solid.save('columns', lc.data);
+      }
+      const ld = await local.load(today);
+      if (ld.ok && !ld.missing && ld.data.length) {
+        const pd = await solid.load(today);
+        if (pd.ok && pd.missing) await solid.save(today, ld.data);
+        else if (!pd.ok) console.error('migration skipped: could not read pod day');
+      }
+    }
+
+    async function onSolidSignIn() {
+      await migrateLocalToSolid();
+      await planner.setBackend(StorageBackends.solid);
+      await subscribeLive();
+    }
+
+    async function onSolidSignOut() {
+      if (unsubDay) { unsubDay(); unsubDay = null; }
+      if (unsubCols) { unsubCols(); unsubCols = null; }
+      StorageBackends.solid._reset();
+      await planner.setBackend(StorageBackends.localStorage);
+    }
+
+    document.addEventListener('xlogin', (e) => { if (e.detail?.type === 'solid') onSolidSignIn(); });
+    document.addEventListener('xlogout', () => onSolidSignOut());
+    if (window.xlogin && window.xlogin.type === 'solid' && window.xlogin.id) onSolidSignIn();
+
+    // Re-hide the xlogin shadow host once its modal is done (same pattern
+    // as the alarm app: while the modal is open every click retargets to
+    // the host, so a click on anything else proves it closed).
+    const hideXlogin = () => document.body.classList.remove('xl-open');
+    document.addEventListener('xlogin', hideXlogin);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideXlogin(); });
+    document.addEventListener('click', (e) => {
+      if (!document.body.classList.contains('xl-open')) return;
+      const t = e.target;
+      if (t && (t.id === 'xlogin-widget' || (t.closest && t.closest('.btn-auth')))) return;
+      hideXlogin();
+    }, true);
+
+    // ============================================
+    // VIEWS / ZOOM
+    // ============================================
+    // pxPerHour drives everything; snap follows zoom.
+
+    const VIEWS = [
+      { key: '24h', label: '24h', pxPerHour: 44, snap: 30 },
+      { key: '12h', label: '12h', pxPerHour: 88, snap: 15 },
+      { key: '6h', label: '6h', pxPerHour: 176, snap: 15 },
+      { key: 'focus', label: 'Focus', pxPerHour: 352, snap: 5 },
+    ];
+
+    // ============================================
+    // UI COMPONENTS
+    // ============================================
+
+    const GridIcon = () => html`
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+        <line x1="7" y1="5" x2="7" y2="19" />
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="17" y1="5" x2="17" y2="19" />
+        <rect x="5.4" y="9" width="3.2" height="5" rx="1" fill="#fff" stroke="none" />
+        <rect x="10.4" y="7" width="3.2" height="4" rx="1" fill="#fff" stroke="none" />
+        <rect x="15.4" y="12" width="3.2" height="6" rx="1" fill="#fff" stroke="none" />
+      </svg>
+    `;
+
+    const TopBar = ({ date, onDate, view, onView }) => {
+      const [who, setWho] = useState((window.xlogin && window.xlogin.id) || null);
+      useEffect(() => {
+        const sync = () => setWho((window.xlogin && window.xlogin.id) || null);
+        document.addEventListener('xlogin', sync);
+        document.addEventListener('xlogout', sync);
+        return () => { document.removeEventListener('xlogin', sync); document.removeEventListener('xlogout', sync); };
+      }, []);
+      const label = who ? (() => { try { return new URL(who).hostname; } catch { return 'Sign out'; } })() : 'Login';
+      const isToday = date === T.todayKey();
+
+      return html`
+        <div class="topbar">
+          <div class="brand"><span class="brand-dot"><${GridIcon} /></span>Planner</div>
+          <div class="datenav">
+            <button type="button" class="btn-nav" aria-label="Previous day" onClick=${() => onDate(T.shiftKey(date, -1))}>‹</button>
+            <div class="date-title">${T.title(date)}</div>
+            <button type="button" class="btn-nav" aria-label="Next day" onClick=${() => onDate(T.shiftKey(date, 1))}>›</button>
+            <button type="button" class=${`btn-today ${isToday ? 'is-today' : ''}`} onClick=${() => onDate(T.todayKey())}>Today</button>
+          </div>
+          <div class="spacer"></div>
+          <div class="zoomctl" role="group" aria-label="Zoom">
+            ${VIEWS.map(v => html`
+              <button
+                type="button"
+                class=${view.key === v.key ? 'active' : ''}
+                aria-pressed=${view.key === v.key}
+                onClick=${() => onView(v)}
+              >${v.label}</button>
+            `)}
+          </div>
+          <button
+            type="button"
+            class="btn-auth"
+            title=${who ? `Signed in as ${who} — click to sign out` : 'Sign in with Solid'}
+            onClick=${() => {
+              if (!window.xlogin) return;
+              if (who) { window.xlogin.logout && window.xlogin.logout(); }
+              else {
+                document.body.classList.add('xl-open');
+                window.xlogin.login && window.xlogin.login();
+              }
+            }}
+          >${label}</button>
+        </div>
+      `;
+    };
+
+    const Block = ({ b, view, colIndex, onEdit, onMark, onPointerDown }) => {
+      const top = (b.start / 60) * view.pxPerHour;
+      const height = Math.max(((b.end - b.start) / 60) * view.pxPerHour, 18);
+      const tint = b.col === 'did' ? 'tint-did' : colIndex >= 2 ? `tint-${Math.min(colIndex, 4)}` : '';
+      const showTime = view.pxPerHour >= 88 || height >= 40;
+      const showNotes = view.key === 'focus' && b.notes && height >= 88;
+
+      return html`
+        <div
+          class=${`block ${tint}`}
+          style=${`top:${top}px;height:${height}px`}
+          data-block=${b.id}
+          tabindex="0"
+          role="button"
+          aria-label=${`${b.title || 'Untitled'} ${T.disp(b.start)} to ${T.disp(b.end)}`}
+          onPointerDown=${(e) => onPointerDown(e, b, 'move')}
+          onDblClick=${() => onEdit(b)}
+          onKeyDown=${(e) => { if (e.key === 'Enter') onEdit(b); }}
+        >
+          <div class="handle top" onPointerDown=${(e) => { e.stopPropagation(); onPointerDown(e, b, 'resize-top'); }}></div>
+          <div class="b-title" title=${b.title || 'Untitled'}>${b.title || 'Untitled'}</div>
+          ${showTime && html`<div class="b-time">${T.disp(b.start)} – ${T.disp(b.end)}</div>`}
+          ${showNotes && html`<div class="b-notes">${b.notes}</div>`}
+          ${b.done && html`<div class="b-done" title="Done">✓</div>`}
+          ${b.col === 'plan' && !b.done && height >= 34 && html`
+            <button type="button" class="b-mark" title="Record in Did as done"
+              onPointerDown=${(e) => e.stopPropagation()}
+              onClick=${(e) => { e.stopPropagation(); onMark(b.id); }}>✓ did</button>
+          `}
+          <div class="handle bottom" onPointerDown=${(e) => { e.stopPropagation(); onPointerDown(e, b, 'resize-bottom'); }}></div>
+        </div>
+      `;
+    };
+
+    const EditSheet = ({ block, columns, onSave, onDelete, onClose }) => {
+      const [form, setForm] = useState(null);
+      useEffect(() => {
+        setForm(block ? {
+          title: block.title, notes: block.notes, col: block.col,
+          start: T.hm(block.start), end: T.hm(block.end), done: !!block.done,
+        } : null);
+      }, [block]);
+
+      if (!block || !form) return html`
+        <div class="backdrop"></div>
+        <div class="sheet"></div>
+      `;
+
+      const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
+      const save = () => {
+        const start = T.min(form.start), end = T.min(form.end);
+        if (end <= start) { toast('End must be after start', { error: true }); return; }
+        onSave(block.id, { title: form.title.trim(), notes: form.notes, col: form.col, start, end, done: form.done });
+        onClose();
+      };
+
+      return html`
+        <div class="backdrop open" onClick=${onClose}></div>
+        <div class="sheet open" role="dialog" aria-label="Edit block">
+          <h2>Edit block</h2>
+          <div class="row">
+            <div class="grow">
+              <label for="f-title">Title</label>
+              <input id="f-title" type="text" value=${form.title} onInput=${set('title')}
+                onKeyDown=${(e) => { if (e.key === 'Enter') save(); }} placeholder="What is this time for?" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="grow">
+              <label for="f-start">Start</label>
+              <input id="f-start" type="time" value=${form.start} onInput=${set('start')} />
+            </div>
+            <div class="grow">
+              <label for="f-end">End</label>
+              <input id="f-end" type="time" value=${form.end} onInput=${set('end')} />
+            </div>
+            <div class="grow">
+              <label for="f-col">Column</label>
+              <select id="f-col" value=${form.col} onChange=${set('col')}>
+                ${columns.map(c => html`<option value=${c.id}>${c.name}</option>`)}
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="grow">
+              <label for="f-notes">Notes</label>
+              <textarea id="f-notes" value=${form.notes} onInput=${set('notes')} placeholder="Details, links, checklist…"></textarea>
+            </div>
+          </div>
+          <label class="done-row">
+            <input type="checkbox" checked=${form.done} onChange=${set('done')} />
+            Done
+          </label>
+          <div class="actions">
+            <button type="button" class="btn-delete" onClick=${() => { onDelete(block.id); onClose(); }}>Delete</button>
+            <button type="button" class="btn-save" onClick=${save}>Save</button>
+          </div>
+        </div>
+      `;
+    };
+
+    // ============================================
+    // BOARD (grid + drag interactions)
+    // ============================================
+
+    const Board = ({ state, view, onEdit }) => {
+      const boardRef = useRef(null);
+      const [drag, setDrag] = useState(null); // {kind, blockId?, col, startMin, endMin, colIndex}
+      const [nowMin, setNowMin] = useState(() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); });
+
+      useEffect(() => {
+        const t = setInterval(() => { const d = new Date(); setNowMin(d.getHours() * 60 + d.getMinutes()); }, 30000);
+        return () => clearInterval(t);
+      }, []);
+
+      // Scroll so "now" (or 8am on other days) sits a third of the way down.
+      useEffect(() => {
+        const el = boardRef.current;
+        if (!el) return;
+        const anchor = state.date === T.todayKey() ? nowMin : 8 * 60;
+        el.scrollTop = Math.max(0, (anchor / 60) * view.pxPerHour - el.clientHeight / 3);
+      }, [view.key, state.date]);
+
+      const dayHeight = 24 * view.pxPerHour;
+
+      const minuteFromY = (clientY) => {
+        const el = boardRef.current;
+        const rect = el.getBoundingClientRect();
+        return ((clientY - rect.top + el.scrollTop) / view.pxPerHour) * 60;
+      };
+
+      // --- create by dragging on empty column space ---
+      const onColPointerDown = (e, colId, colIndex) => {
+        if (e.target.closest('.block')) return;
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        e.preventDefault();
+        const startRaw = minuteFromY(e.clientY);
+        const start = T.clamp(T.snap(startRaw, view.snap), 0, 1440 - view.snap);
+        const d = { kind: 'create', col: colId, colIndex, anchor: start, startMin: start, endMin: start + view.snap };
+        setDrag(d);
+
+        const move = (ev) => {
+          const cur = T.clamp(T.snap(minuteFromY(ev.clientY), view.snap), 0, 1440);
+          setDrag({ ...d, startMin: Math.min(d.anchor, cur), endMin: Math.max(d.anchor, cur) || d.anchor + view.snap });
+        };
+        const up = (ev) => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          const cur = T.clamp(T.snap(minuteFromY(ev.clientY), view.snap), 0, 1440);
+          const s = Math.min(d.anchor, cur), en = Math.max(d.anchor, cur);
+          setDrag(null);
+          const block = planner.addBlock(colId, s, en > s ? en : s + view.snap);
+          onEdit(block); // name it immediately
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      };
+
+      // --- move / resize existing blocks ---
+      const onBlockPointerDown = (e, b, kind) => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        e.preventDefault();
+        const colEls = [...boardRef.current.querySelectorAll('.col')];
+        const grabOffset = kind === 'move' ? minuteFromY(e.clientY) - b.start : 0;
+        const dur = b.end - b.start;
+        let last = { start: b.start, end: b.end, col: b.col };
+        const d = { kind, blockId: b.id, col: b.col, startMin: b.start, endMin: b.end };
+        setDrag(d);
+
+        const move = (ev) => {
+          const m = minuteFromY(ev.clientY);
+          let next = { ...last };
+          if (kind === 'move') {
+            const s = T.clamp(T.snap(m - grabOffset, view.snap), 0, 1440 - dur);
+            next.start = s; next.end = s + dur;
+            // horizontal: which column is the pointer over?
+            const hit = colEls.findIndex(el => {
+              const r = el.getBoundingClientRect();
+              return ev.clientX >= r.left && ev.clientX < r.right;
+            });
+            if (hit >= 0) next.col = state.columns[hit].id;
+          } else if (kind === 'resize-top') {
+            next.start = T.clamp(T.snap(m, view.snap), 0, last.end - view.snap);
+          } else {
+            next.end = T.clamp(T.snap(m, view.snap), last.start + view.snap, 1440);
+          }
+          last = next;
+          setDrag({ ...d, startMin: next.start, endMin: next.end, col: next.col });
+        };
+        const up = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          setDrag(null);
+          if (last.start !== b.start || last.end !== b.end || last.col !== b.col) {
+            planner.updateBlock(b.id, { start: last.start, end: last.end, col: last.col });
+          }
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      };
+
+      const hours = Array.from({ length: 24 }, (_, i) => i);
+      const isToday = state.date === T.todayKey();
+
+      return html`
+        <div class="board" ref=${boardRef}>
+          <div class="canvas" style=${`height:${dayHeight}px`}>
+            <div class="rail">
+              ${hours.map(hh => hh > 0 && html`
+                <div class="hr" style=${`top:${(hh / 24) * 100}%`}>${T.railLabel(hh)}</div>
+              `)}
+            </div>
+            ${hours.map(hh => html`
+              ${hh > 0 && html`<div class="gridline" style=${`top:${hh * view.pxPerHour}px`}></div>`}
+              ${view.pxPerHour >= 88 && html`<div class="gridline half" style=${`top:${(hh + 0.5) * view.pxPerHour}px`}></div>`}
+            `)}
+            ${state.columns.map((c, i) => html`
+              <div class="col" key=${c.id} data-col=${c.id}
+                onPointerDown=${(e) => onColPointerDown(e, c.id, i)}>
+                ${state.blocks.filter(b => b.col === c.id && !(drag && drag.blockId === b.id)).map(b => html`
+                  <${Block} key=${b.id} b=${b} view=${view} colIndex=${i}
+                    onEdit=${onEdit}
+                    onMark=${(id) => planner.markDid(id)}
+                    onPointerDown=${onBlockPointerDown} />
+                `)}
+                ${drag && (drag.col === c.id) && html`
+                  <div class="block ghost" style=${`top:${(drag.startMin / 60) * view.pxPerHour}px;height:${Math.max(((drag.endMin - drag.startMin) / 60) * view.pxPerHour, 12)}px`}>
+                    <div class="b-time">${T.disp(drag.startMin)} – ${T.disp(drag.endMin)}</div>
+                  </div>
+                `}
+              </div>
+            `)}
+            ${isToday && html`<div class="nowline" style=${`top:${(nowMin / 60) * view.pxPerHour}px`}></div>`}
+          </div>
+        </div>
+      `;
+    };
+
+    // ============================================
+    // APP
+    // ============================================
+
+    const App = () => {
+      const [state, setState] = useState(planner.getState());
+      const [view, setView] = useState(VIEWS[1]); // 12h default
+      const [editing, setEditing] = useState(null);
+      const [addingCol, setAddingCol] = useState(false);
+
+      useEffect(() => {
+        planner.init();
+        return planner.subscribe(setState);
+      }, []);
+
+      const onDate = useCallback((key) => {
+        planner.setDate(key);
+        subscribeLiveIfSolid();
+      }, []);
+
+      const subscribeLiveIfSolid = () => {
+        if (window.xlogin && window.xlogin.type === 'solid' && window.xlogin.id) subscribeLive();
+      };
+
+      const counts = {};
+      state.blocks.forEach(b => { counts[b.col] = (counts[b.col] || 0) + 1; });
+
+      return html`
+        <${TopBar} date=${state.date} onDate=${onDate} view=${view} onView=${setView} />
+        <div class="board-wrap">
+          <div class="colheads">
+            ${state.columns.map(c => html`
+              <div class="colhead" key=${c.id}>
+                <span class="dot" style=${`background:${c.id === 'did' ? 'var(--did)' : c.id === 'plan' ? 'var(--accent)' : '#d97706'}`}></span>
+                ${c.name}
+                <span class="cnt">${counts[c.id] || 0}</span>
+                ${c.id !== 'plan' && c.id !== 'did' && html`
+                  <button type="button" class="btn-delcol" aria-label="Remove column ${c.name}"
+                    onClick=${() => planner.removeColumn(c.id)}>✕</button>
+                `}
+              </div>
+            `)}
+            ${addingCol ? html`
+              <input
+                class="addcol-input"
+                type="text"
+                placeholder="Column name"
+                aria-label="New column name"
+                autoFocus
+                onKeyDown=${(e) => {
+                  if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) planner.addColumn(v); setAddingCol(false); }
+                  if (e.key === 'Escape') setAddingCol(false);
+                }}
+                onBlur=${(e) => { const v = e.target.value.trim(); if (v) planner.addColumn(v); setAddingCol(false); }}
+              />
+            ` : html`
+              <button type="button" class="btn-addcol" title="Add column" aria-label="Add column"
+                onClick=${() => setAddingCol(true)}>+</button>
+            `}
+          </div>
+          <${Board} state=${state} view=${view} onEdit=${setEditing} />
+        </div>
+        <${EditSheet}
+          block=${editing}
+          columns=${state.columns}
+          onSave=${(id, patch) => planner.updateBlock(id, patch)}
+          onDelete=${(id) => planner.removeBlock(id)}
+          onClose=${() => setEditing(null)}
+        />
+      `;
+    };
+
+    render(html`<${App} />`, document.getElementById('app'));
+
+    // Expose for debugging / extension
+    window.PlannerApp = { planner, StorageBackends, T, VIEWS };
+  </script>
+</body>
+</html>

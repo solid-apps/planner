@@ -302,6 +302,92 @@
       padding: 1px 7px;
       font-variant-numeric: tabular-nums;
     }
+    .colhead-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      background: transparent;
+      font: inherit;
+      color: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .colhead-btn:hover { background: rgba(15, 23, 42, 0.05); }
+    .colhead { position: relative; }
+    .colmenu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      width: 240px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.09);
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+    .cm-name {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid #e2e5f0;
+      border-radius: 9px;
+      background: var(--bg-soft);
+      font-family: var(--font);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .cm-name:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .cm-swatches { display: flex; gap: 7px; flex-wrap: wrap; }
+    .cm-swatch {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .cm-swatch:hover { transform: scale(1.12); }
+    .cm-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--text); }
+    .cm-row { display: flex; gap: 8px; }
+    .cm-btn {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #e2e5f0;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .cm-btn:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-deep); }
+    .cm-btn:disabled { opacity: 0.4; cursor: default; }
+    .cm-del {
+      padding: 8px;
+      border: 1px solid rgba(225, 29, 72, 0.3);
+      border-radius: 9px;
+      background: transparent;
+      color: var(--danger);
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .cm-del:hover:not(:disabled) { background: rgba(225, 29, 72, 0.07); }
+    .cm-del:disabled { opacity: 0.4; cursor: default; }
+    .cm-note { font-size: 0.71875rem; color: var(--text-dim); line-height: 1.4; }
+
     .btn-delcol {
       border: none; background: transparent; color: var(--text-dim);
       cursor: pointer; font-size: 0.8rem; line-height: 1; padding: 2px 4px;
@@ -614,11 +700,7 @@
     .block .handle.top { top: -2px; }
     .block .handle.bottom { bottom: -2px; }
 
-    /* One chrome formula, chroma-matched hues — columns cohere as a system */
-    .block.tint-did { --hue: 160; }
-    .block.tint-2 { --hue: 70; }
-    .block.tint-3 { --hue: 230; }
-    .block.tint-4 { --hue: 340; }
+    /* One chrome formula; each column's accent sets --hue via inline style */
     /* Resize affordance: a grip bar appears at the bottom edge on hover */
     .block:hover .handle.bottom::after {
       content: '';
@@ -1151,9 +1233,16 @@
     // Columns live in one global doc (schema:ItemList of ListItems).
 
     const DEFAULT_COLUMNS = [
-      { id: 'plan', name: 'Plan' },
-      { id: 'did', name: 'Did' },
+      { id: 'plan', name: 'Plan', color: '#4f46e5' },
+      { id: 'did', name: 'Did', color: '#059669' },
     ];
+
+    // Older stored column sets predate color — assign stable defaults.
+    const normalizeColumns = (cols) => cols.map((c, i) => ({
+      ...c,
+      color: c.color || (c.id === 'plan' ? '#4f46e5' : c.id === 'did' ? '#059669'
+        : PALETTE[(i) % PALETTE.length].hex),
+    }));
 
     const ICAL_CONTEXT = {
       ical: 'http://www.w3.org/2002/12/cal/ical#',
@@ -1170,8 +1259,19 @@
       schema: 'https://schema.org/',
       dct: 'http://purl.org/dc/terms/',
       name: 'dct:title', position: 'schema:position',
+      color: 'schema:color',
       modified: 'dct:modified',
     };
+
+    // Column accents: hex is what we store (schema:color — real vocab),
+    // the OKLCH hue drives the block chrome formula.
+    const PALETTE = [
+      { hex: '#4f46e5', hue: 275 }, { hex: '#059669', hue: 160 },
+      { hex: '#d97706', hue: 70 },  { hex: '#0284c7', hue: 230 },
+      { hex: '#be185d', hue: 340 }, { hex: '#7c3aed', hue: 300 },
+      { hex: '#dc2626', hue: 25 },  { hex: '#4d7c0f', hue: 130 },
+    ];
+    const hueOf = (hex) => (PALETTE.find(p => p.hex === hex) || PALETTE[0]).hue;
 
     // ============================================
     // STORAGE BACKENDS
@@ -1332,6 +1432,7 @@
               '@id': '#col-' + c.id,
               '@type': 'schema:ListItem',
               name: c.name,
+              color: c.color,
               position: i + 1,
             }))
           };
@@ -1344,6 +1445,7 @@
             .map(it => ({
               id: String(it['@id'] || '').replace(/^#col-/, '') || uid(),
               name: it.name || 'Column',
+              color: it.color || undefined,
             }));
           return cols.length ? cols : null;
         },
@@ -1420,22 +1522,21 @@
         listeners.forEach(fn => fn(snap));
       };
 
-      // Debounced day-save; flushed on pagehide so navigation can't drop work.
+      // Debounced saves; flushed on pagehide so navigation can't drop work.
       const saveDay = SolidKit.debounce(async () => {
         const ok = await backend.save('day:' + date, blocks);
         if (!ok && backend.name === 'solid') toast("Couldn't save to your pod — will retry on next change", { error: true });
       }, 600);
-      window.addEventListener('pagehide', () => saveDay.flush());
-      document.addEventListener('visibilitychange', () => { if (document.hidden) saveDay.flush(); });
-
-      const saveColumns = async () => {
+      const saveColumns = SolidKit.debounce(async () => {
         const ok = await backend.save('columns', columns);
         if (!ok && backend.name === 'solid') toast("Couldn't save columns to your pod", { error: true });
-      };
+      }, 600);
+      window.addEventListener('pagehide', () => { saveDay.flush(); saveColumns.flush(); });
+      document.addEventListener('visibilitychange', () => { if (document.hidden) { saveDay.flush(); saveColumns.flush(); } });
 
       async function loadAll() {
         const [c, d] = await Promise.all([backend.load('columns'), backend.load('day:' + date)]);
-        if (c.ok) columns = c.missing ? [...DEFAULT_COLUMNS] : c.data;
+        if (c.ok) columns = c.missing ? [...DEFAULT_COLUMNS] : normalizeColumns(c.data);
         else toast("Couldn't load columns — keeping the current set", { error: true });
         if (d.ok) blocks = d.missing ? [] : d.data;
         else toast("Couldn't load this day — changes are paused until it loads", { error: true });
@@ -1470,7 +1571,7 @@
         },
         async reloadColumns() {
           const c = await backend.load('columns');
-          if (c.ok) { columns = c.missing ? [...DEFAULT_COLUMNS] : c.data; notify(); }
+          if (c.ok) { columns = c.missing ? [...DEFAULT_COLUMNS] : normalizeColumns(c.data); notify(); }
         },
 
         addBlock(col, start, end, title = '') {
@@ -1520,7 +1621,24 @@
 
         addColumn(name) {
           const id = uid();
-          columns.push({ id, name: name || 'Column ' + (columns.length + 1) });
+          const used = new Set(columns.map(c => c.color));
+          const color = (PALETTE.find(p => !used.has(p.hex)) || PALETTE[columns.length % PALETTE.length]).hex;
+          columns.push({ id, name: name || 'Column ' + (columns.length + 1), color });
+          saveColumns(); notify();
+        },
+
+        updateColumn(id, patch) {
+          const c = columns.find(x => x.id === id);
+          if (!c) return;
+          Object.assign(c, patch);
+          saveColumns(); notify();
+        },
+
+        moveColumn(id, delta) {
+          const i = columns.findIndex(x => x.id === id);
+          const j = i + delta;
+          if (i < 0 || j < 0 || j >= columns.length) return;
+          [columns[i], columns[j]] = [columns[j], columns[i]];
           saveColumns(); notify();
         },
 
@@ -1714,10 +1832,9 @@
       `;
     };
 
-    const Block = ({ b, view, colIndex, onEdit, onMark, onPointerDown }) => {
+    const Block = ({ b, view, hue, onEdit, onMark, onPointerDown }) => {
       const top = (b.start / 60) * view.pxPerHour;
       const height = Math.max(((b.end - b.start) / 60) * view.pxPerHour, 18);
-      const tint = b.col === 'did' ? 'tint-did' : colIndex >= 2 ? `tint-${Math.min(colIndex, 4)}` : '';
       const slim = height < 30;
       const showTime = !slim && (view.pxPerHour >= 88 || height >= 40);
       const showNotes = view.key === 'focus' && b.notes && height >= 88;
@@ -1725,8 +1842,8 @@
 
       return html`
         <div
-          class=${`block ${tint} ${slim ? 'slim' : ''}`}
-          style=${`top:${top}px;height:${height}px`}
+          class=${`block ${slim ? 'slim' : ''}`}
+          style=${`top:${top}px;height:${height}px;--hue:${hue}`}
           data-block=${b.id}
           tabindex="0"
           role="button"
@@ -1836,6 +1953,55 @@
     // ============================================
     // BOARD (grid + drag interactions)
     // ============================================
+
+    const ColumnMenu = ({ col, index, total, hasBlocks, onClose }) => {
+      const ref = useRef(null);
+      useEffect(() => {
+        const away = (e) => { if (ref.current && !ref.current.contains(e.target) && !e.target.closest('.colhead-btn')) onClose(); };
+        const esc = (e) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('pointerdown', away, true);
+        document.addEventListener('keydown', esc);
+        return () => { document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', esc); };
+      }, []);
+
+      const builtin = col.id === 'plan' || col.id === 'did';
+
+      return html`
+        <div class="colmenu" ref=${ref} role="dialog" aria-label="Edit column">
+          <input
+            class="cm-name"
+            type="text"
+            value=${col.name}
+            aria-label="Column name"
+            onInput=${(e) => planner.updateColumn(col.id, { name: e.target.value })}
+            onKeyDown=${(e) => { if (e.key === 'Enter') onClose(); }}
+          />
+          <div class="cm-swatches" role="group" aria-label="Column color">
+            ${PALETTE.map(p => html`
+              <button type="button"
+                class=${`cm-swatch ${col.color === p.hex ? 'active' : ''}`}
+                style=${`background:${p.hex}`}
+                aria-label="Color ${p.hex}"
+                onClick=${() => planner.updateColumn(col.id, { color: p.hex })}></button>
+            `)}
+          </div>
+          <div class="cm-row">
+            <button type="button" class="cm-btn" disabled=${index === 0}
+              onClick=${() => planner.moveColumn(col.id, -1)}>← Move</button>
+            <button type="button" class="cm-btn" disabled=${index === total - 1}
+              onClick=${() => planner.moveColumn(col.id, 1)}>Move →</button>
+          </div>
+          ${!builtin && html`
+            <button type="button" class="cm-del" disabled=${hasBlocks}
+              title=${hasBlocks ? 'Column has blocks — move or delete them first' : 'Delete column'}
+              onClick=${() => { planner.removeColumn(col.id); onClose(); }}>
+              Delete column
+            </button>
+          `}
+          ${builtin && html`<div class="cm-note">${col.name === 'Plan' || col.id === 'plan' ? 'Plan' : 'Did'} is built in — rename or recolor, but it stays.</div>`}
+        </div>
+      `;
+    };
 
     const Board = ({ state, view, onEdit }) => {
       const boardRef = useRef(null);
@@ -2020,7 +2186,7 @@
                   <div class="slot-ghost" style=${`top:${(hoverSlot.start / 60) * view.pxPerHour}px;height:${(hoverSlot.span / 60) * view.pxPerHour}px`}>+ ${T.disp(hoverSlot.start)}</div>
                 `}
                 ${state.blocks.filter(b => b.col === c.id && !(drag && drag.blockId === b.id)).map(b => html`
-                  <${Block} key=${b.id} b=${b} view=${view} colIndex=${i}
+                  <${Block} key=${b.id} b=${b} view=${view} hue=${hueOf(c.color)}
                     onEdit=${onEdit}
                     onMark=${(id) => planner.markDid(id)}
                     onPointerDown=${onBlockPointerDown} />
@@ -2051,6 +2217,7 @@
       const [state, setState] = useState(planner.getState());
       const [view, setView] = useState(VIEWS[1]); // 12h default
       const [editing, setEditing] = useState(null);
+      const [editingCol, setEditingCol] = useState(null);
 
       useEffect(() => {
         planner.init();
@@ -2074,14 +2241,24 @@
           onAddColumn=${(name) => planner.addColumn(name)} />
         <div class="board-wrap">
           <div class="colheads">
-            ${state.columns.map(c => html`
+            ${state.columns.map((c, i) => html`
               <div class="colhead" key=${c.id}>
-                <span class="dot" style=${`background:${c.id === 'did' ? 'var(--did)' : c.id === 'plan' ? 'var(--accent)' : '#d97706'}`}></span>
-                ${c.name}
-                <span class="cnt">${counts[c.id] || 0}</span>
-                ${c.id !== 'plan' && c.id !== 'did' && html`
-                  <button type="button" class="btn-delcol" aria-label="Remove column ${c.name}"
-                    onClick=${() => planner.removeColumn(c.id)}>✕</button>
+                <button type="button" class="colhead-btn"
+                  aria-label="Edit column ${c.name}"
+                  aria-expanded=${editingCol === c.id}
+                  onClick=${() => setEditingCol(editingCol === c.id ? null : c.id)}>
+                  <span class="dot" style=${`background:${c.color}`}></span>
+                  ${c.name}
+                  <span class="cnt">${counts[c.id] || 0}</span>
+                </button>
+                ${editingCol === c.id && html`
+                  <${ColumnMenu}
+                    col=${c}
+                    index=${i}
+                    total=${state.columns.length}
+                    hasBlocks=${(counts[c.id] || 0) > 0}
+                    onClose=${() => setEditingCol(null)}
+                  />
                 `}
               </div>
             `)}

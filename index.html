@@ -1543,11 +1543,21 @@
 
     const EditSheet = ({ block, columns, onSave, onDelete, onClose }) => {
       const [form, setForm] = useState(null);
+      const titleRef = useRef(null);
       useEffect(() => {
         setForm(block ? {
           title: block.title, notes: block.notes, col: block.col,
           start: T.hm(block.start), end: T.hm(block.end), done: !!block.done,
         } : null);
+        if (block) {
+          // Land the caret in the title as the sheet finishes sliding in —
+          // a fresh block exists to be named.
+          const t = setTimeout(() => {
+            const el = titleRef.current;
+            if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n); }
+          }, 260);
+          return () => clearTimeout(t);
+        }
       }, [block]);
 
       if (!block || !form) return html`
@@ -1570,7 +1580,7 @@
           <div class="row">
             <div class="grow">
               <label for="f-title">Title</label>
-              <input id="f-title" type="text" value=${form.title} onInput=${set('title')}
+              <input id="f-title" ref=${titleRef} type="text" value=${form.title} onInput=${set('title')}
                 onKeyDown=${(e) => { if (e.key === 'Enter') save(); }} placeholder="What is this time for?" />
             </div>
           </div>

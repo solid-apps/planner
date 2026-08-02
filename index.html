@@ -93,7 +93,7 @@
 
     body {
       font-family: var(--font);
-      background: linear-gradient(180deg, #f7f8fd 0%, var(--bg) 55%, #eef0f9 100%);
+      background: linear-gradient(180deg, #eceef7 0%, #e7eaf3 55%, #e0e4ef 100%);
       background-attachment: fixed;
       color: var(--text);
       min-height: 100vh;
@@ -125,7 +125,8 @@
     /* ---------- Header ---------- */
     .topbar {
       flex-shrink: 0;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
       gap: 16px;
       padding: 14px 20px 10px;
@@ -133,6 +134,7 @@
       width: 100%;
       margin: 0 auto;
     }
+    .top-right { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
     .brand {
       display: flex;
       align-items: center;
@@ -158,10 +160,10 @@
       margin-left: 8px;
     }
     .datenav .date-title {
-      font-size: 0.9375rem;
-      font-weight: 650;
-      letter-spacing: -0.01em;
-      min-width: 168px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      min-width: 200px;
       text-align: center;
       font-variant-numeric: tabular-nums;
     }
@@ -193,29 +195,29 @@
     .btn-today:hover { color: var(--accent); background: var(--accent-soft); }
     .btn-today.is-today { color: var(--accent); border-color: rgba(79, 70, 229, 0.3); }
 
-    .spacer { flex: 1; }
-
     .zoomctl {
-      display: flex;
-      height: 34px;
-      border: 1px solid var(--card-border);
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.06);
       border-radius: 10px;
-      overflow: hidden;
-      background: var(--card);
+      padding: 3px;
     }
     .zoomctl button {
-      padding: 0 14px;
+      padding: 5px 13px;
       border: none;
+      border-radius: 8px;
       background: transparent;
-      color: var(--text-dim);
+      color: #4b5563;
       font-family: var(--font);
       font-size: 0.8125rem;
       font-weight: 650;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
     }
-    .zoomctl button + button { border-left: 1px solid var(--card-border); }
-    .zoomctl button.active { background: var(--accent); color: #fff; }
+    .zoomctl button.active {
+      background: #fff;
+      color: var(--accent-deep);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+    }
 
     .btn-auth {
       background: transparent;
@@ -237,6 +239,7 @@
 
     /* ---------- Board ---------- */
     .board-wrap {
+      position: relative;
       flex: 1;
       min-height: 0;
       max-width: 1280px;
@@ -251,7 +254,8 @@
       flex-shrink: 0;
       display: flex;
       padding-left: var(--rail-w);
-      gap: 10px;
+      gap: 0;
+      padding-right: 8px;
     }
     .colhead {
       flex: 1;
@@ -270,10 +274,13 @@
     }
     .colhead .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .colhead .cnt {
-      font-weight: 600;
-      color: var(--text-dim);
-      opacity: 0.7;
+      font-weight: 650;
+      color: #5b6472;
       letter-spacing: 0;
+      font-size: 0.625rem;
+      background: rgba(15, 23, 42, 0.06);
+      border-radius: 9999px;
+      padding: 1px 7px;
       font-variant-numeric: tabular-nums;
     }
     .btn-delcol {
@@ -284,15 +291,19 @@
     }
     .colhead:hover .btn-delcol { opacity: 0.7; }
     .btn-delcol:hover { color: var(--danger); opacity: 1 !important; }
+    .colheads { align-items: center; }
     .btn-addcol {
       flex-shrink: 0;
-      width: 34px;
-      border: 1px dashed rgba(17, 24, 39, 0.18);
-      border-radius: 10px;
-      background: transparent;
+      width: 28px; height: 28px;
+      align-self: center;
+      border: 1px solid #e2e8f0;
+      border-radius: 50%;
+      background: #fff;
       color: var(--text-dim);
       font-size: 1rem;
+      line-height: 1;
       cursor: pointer;
+      box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
       transition: color 0.15s, border-color 0.15s, background 0.15s;
     }
     .btn-addcol:hover { color: var(--accent); border-color: rgba(79, 70, 229, 0.4); background: var(--accent-soft); }
@@ -313,14 +324,17 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      border: 1px solid var(--card-border);
+      border: 1px solid rgba(15, 23, 42, 0.07);
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -8px rgba(15, 23, 42, 0.10);
       position: relative;
       overscroll-behavior: contain;
+      /* No scrollbar chrome: on this platform even a thin themed thumb
+       * reads as an artifact against the board surface */
+      scrollbar-width: none;
     }
+    .board::-webkit-scrollbar { display: none; }
 
     .canvas {
       position: relative;
@@ -340,7 +354,17 @@
       transform: translateY(-50%);
       font-size: 0.6875rem;
       font-weight: 600;
-      color: #8a93a8;
+      color: #5b6472;
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+    }
+    .rail .qr {
+      position: absolute;
+      right: 10px;
+      transform: translateY(-50%);
+      font-size: 0.625rem;
+      font-weight: 600;
+      color: #6b7280;
       font-variant-numeric: tabular-nums;
       user-select: none;
     }
@@ -362,6 +386,110 @@
     }
     .col:first-of-type { border-left: none; }
 
+    /* Focus zoom: geometry AND typography scale together.
+     * .board.zoom-focus outranks .block rules — round-2 audit caught the
+     * equal-specificity version losing the cascade. */
+    .board.zoom-focus .block { padding: 12px 16px; border-radius: 12px; }
+    .board.zoom-focus .block .b-title { font-size: 1.05rem; font-weight: 650; }
+    .board.zoom-focus .block .b-time { font-size: 0.8125rem; margin-top: 2px; }
+    .board.zoom-focus .block .b-notes { font-size: 0.8125rem; margin-top: 8px; -webkit-line-clamp: 8; }
+    .board.zoom-focus .b-mark, .board.zoom-6h .b-mark { opacity: 0.55; }
+
+    /* Hover slot ghost: empty grid space shows where a drag would create */
+    .slot-ghost {
+      position: absolute;
+      left: 6px; right: 6px;
+      border: 1.5px dashed rgba(79, 70, 229, 0.45);
+      border-radius: 10px;
+      background: rgba(79, 70, 229, 0.045);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 650;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Empty-day invitation */
+    .empty-day {
+      position: absolute;
+      left: var(--rail-w); right: 0;
+      display: grid;
+      justify-items: center;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .empty-card {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      width: 380px;
+      max-width: 80%;
+      padding: 28px 32px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.07);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.12);
+      text-align: center;
+    }
+    .empty-day .ed-title { font-size: 1.05rem; font-weight: 700; color: #1e293b; letter-spacing: -0.01em; }
+    .empty-day .ed-hint { font-size: 0.8125rem; color: #6b7280; }
+    .empty-day .ed-btn {
+      pointer-events: auto;
+      border: 1px solid #c7d2fe;
+      border-radius: 9999px;
+      background: #fff;
+      color: var(--accent);
+      font-family: var(--font);
+      font-size: 0.8125rem;
+      font-weight: 650;
+      padding: 8px 16px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
+      transition: background 0.15s, transform 0.1s;
+    }
+    .empty-day .ed-btn:hover { background: var(--accent-soft); }
+    .empty-day .ed-btn:active { transform: scale(0.97); }
+
+    /* Jump-to-now chip when today's now-line is off-screen */
+    .now-chip {
+      position: absolute;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 7;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(220, 38, 38, 0.35);
+      border-radius: 9999px;
+      background: #fff;
+      color: #dc2626;
+      font-family: var(--font);
+      font-size: 0.8125rem;
+      font-weight: 650;
+      padding: 8px 15px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+      transition: transform 0.1s;
+    }
+    .now-chip::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #dc2626;
+    }
+    .now-chip:active { transform: translateX(-50%) scale(0.96); }
+
+    .offhours {
+      position: absolute;
+      left: var(--rail-w); right: 0;
+      background: rgba(15, 23, 42, 0.025);
+      pointer-events: none;
+    }
+
     /* Now line */
     .nowline {
       position: absolute;
@@ -379,15 +507,32 @@
       border-radius: 50%;
       background: var(--danger);
     }
+    .nowline::after {
+      content: attr(data-time);
+      position: absolute;
+      left: 10px;
+      top: 0;
+      transform: translateY(-50%);
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.625rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 6px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
 
     /* ---------- Blocks ---------- */
     .block {
+      --hue: 275;
       position: absolute;
       left: 6px; right: 6px;
+      z-index: 2;
       border-radius: 10px;
-      background: var(--accent-soft);
-      border: 1px solid rgba(79, 70, 229, 0.28);
-      border-left: 3px solid var(--accent);
+      background: oklch(96.5% 0.03 var(--hue));
+      border: 1px solid oklch(80% 0.09 var(--hue));
+      border-left: 3px solid oklch(55% 0.16 var(--hue));
       padding: 4px 8px;
       overflow: hidden;
       cursor: grab;
@@ -415,7 +560,7 @@
     .block .b-time {
       font-size: 0.6875rem;
       font-weight: 600;
-      color: var(--text-dim);
+      color: #57606c;
       font-variant-numeric: tabular-nums;
     }
     .block .b-notes {
@@ -431,9 +576,13 @@
     }
     .block .b-done {
       position: absolute;
-      top: 5px; right: 6px;
-      font-size: 0.6875rem;
-      color: var(--did);
+      top: 5px; right: 5px;
+      width: 16px; height: 16px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: var(--did);
+      color: #fff;
+      font-size: 0.625rem;
       font-weight: 700;
     }
     .block .handle {
@@ -446,11 +595,33 @@
     .block .handle.top { top: -2px; }
     .block .handle.bottom { bottom: -2px; }
 
-    /* Column-family styling: Did-column blocks go emerald; extra columns cycle hues */
-    .block.tint-did { background: var(--did-soft); border-color: rgba(13, 158, 110, 0.3); border-left-color: var(--did); }
-    .block.tint-2 { background: rgba(217, 119, 6, 0.09); border-color: rgba(217, 119, 6, 0.3); border-left-color: #d97706; }
-    .block.tint-3 { background: rgba(2, 132, 199, 0.09); border-color: rgba(2, 132, 199, 0.3); border-left-color: #0284c7; }
-    .block.tint-4 { background: rgba(190, 24, 93, 0.08); border-color: rgba(190, 24, 93, 0.28); border-left-color: #be185d; }
+    /* One chrome formula, chroma-matched hues — columns cohere as a system */
+    .block.tint-did { --hue: 160; }
+    .block.tint-2 { --hue: 70; }
+    .block.tint-3 { --hue: 230; }
+    .block.tint-4 { --hue: 340; }
+    /* Resize affordance: a grip bar appears at the bottom edge on hover */
+    .block:hover .handle.bottom::after {
+      content: '';
+      position: absolute;
+      left: 50%; bottom: 3px;
+      transform: translateX(-50%);
+      width: 28px; height: 3px;
+      border-radius: 2px;
+      background: oklch(55% 0.16 var(--hue) / 0.45);
+    }
+
+    /* Compressed strips (24h view) stay legible */
+    .block.slim { padding: 1px 8px; display: flex; align-items: center; }
+    .block.slim .b-title { font-size: 0.71875rem; line-height: 1.1; }
+
+    /* Tall blocks may wrap the title to two lines before truncating */
+    .b-title.two-line {
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
 
     .b-mark {
       position: absolute;
@@ -1453,8 +1624,9 @@
       </svg>
     `;
 
-    const TopBar = ({ date, onDate, view, onView }) => {
+    const TopBar = ({ date, onDate, view, onView, onAddColumn }) => {
       const [who, setWho] = useState((window.xlogin && window.xlogin.id) || null);
+      const [addingCol, setAddingColGlobal] = useState(false);
       useEffect(() => {
         const sync = () => setWho((window.xlogin && window.xlogin.id) || null);
         document.addEventListener('xlogin', sync);
@@ -1468,12 +1640,33 @@
         <div class="topbar">
           <div class="brand"><span class="brand-dot"><${GridIcon} /></span>Planner</div>
           <div class="datenav">
-            <button type="button" class="btn-nav" aria-label="Previous day" onClick=${() => onDate(T.shiftKey(date, -1))}>‹</button>
+            <button type="button" class="btn-nav" aria-label="Previous day" onClick=${(e) => { e.currentTarget.blur(); onDate(T.shiftKey(date, -1)); }}>‹</button>
             <div class="date-title">${T.title(date)}</div>
-            <button type="button" class="btn-nav" aria-label="Next day" onClick=${() => onDate(T.shiftKey(date, 1))}>›</button>
-            <button type="button" class=${`btn-today ${isToday ? 'is-today' : ''}`} onClick=${() => onDate(T.todayKey())}>Today</button>
+            <button type="button" class="btn-nav" aria-label="Next day" onClick=${(e) => { e.currentTarget.blur(); onDate(T.shiftKey(date, 1)); }}>›</button>
+            <button type="button" class=${`btn-today ${isToday ? 'is-today' : ''}`} onClick=${(e) => {
+              e.currentTarget.blur();
+              if (isToday) window.dispatchEvent(new Event('planner:scroll-now'));
+              else onDate(T.todayKey());
+            }}>Today</button>
           </div>
-          <div class="spacer"></div>
+          <div class="top-right">
+          ${addingCol ? html`
+            <input
+              class="addcol-input"
+              type="text"
+              placeholder="Column name"
+              aria-label="New column name"
+              autoFocus
+              onKeyDown=${(e) => {
+                if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) onAddColumn(v); setAddingColGlobal(false); }
+                if (e.key === 'Escape') setAddingColGlobal(false);
+              }}
+              onBlur=${(e) => { const v = e.target.value.trim(); if (v) onAddColumn(v); setAddingColGlobal(false); }}
+            />
+          ` : html`
+            <button type="button" class="btn-addcol" title="Add column" aria-label="Add column"
+              onClick=${() => setAddingColGlobal(true)}>+</button>
+          `}
           <div class="zoomctl" role="group" aria-label="Zoom">
             ${VIEWS.map(v => html`
               <button
@@ -1497,6 +1690,7 @@
               }
             }}
           >${label}</button>
+          </div>
         </div>
       `;
     };
@@ -1505,12 +1699,14 @@
       const top = (b.start / 60) * view.pxPerHour;
       const height = Math.max(((b.end - b.start) / 60) * view.pxPerHour, 18);
       const tint = b.col === 'did' ? 'tint-did' : colIndex >= 2 ? `tint-${Math.min(colIndex, 4)}` : '';
-      const showTime = view.pxPerHour >= 88 || height >= 40;
+      const slim = height < 30;
+      const showTime = !slim && (view.pxPerHour >= 88 || height >= 40);
       const showNotes = view.key === 'focus' && b.notes && height >= 88;
+      const twoLine = height >= 56;
 
       return html`
         <div
-          class=${`block ${tint}`}
+          class=${`block ${tint} ${slim ? 'slim' : ''}`}
           style=${`top:${top}px;height:${height}px`}
           data-block=${b.id}
           tabindex="0"
@@ -1527,10 +1723,10 @@
             onPointerDown=${(e) => e.stopPropagation()}
             onClick=${(e) => { e.stopPropagation(); planner.removeBlock(b.id); }}>\u2715</button>
           <div class="handle top" onPointerDown=${(e) => { e.stopPropagation(); onPointerDown(e, b, 'resize-top'); }}></div>
-          <div class="b-title" title=${b.title || 'Untitled'}>${b.title || 'Untitled'}</div>
+          <div class=${`b-title ${twoLine ? 'two-line' : ''}`} title=${b.title || 'Untitled'}>${b.title || 'Untitled'}</div>
           ${showTime && html`<div class="b-time">${T.disp(b.start)} – ${T.disp(b.end)}</div>`}
           ${showNotes && html`<div class="b-notes">${b.notes}</div>`}
-          ${b.done && html`<div class="b-done" title="Done">✓</div>`}
+          ${(b.done || b.col === 'did') && html`<div class="b-done" title="Done">✓</div>`}
           ${b.col === 'plan' && !b.done && height >= 34 && html`
             <button type="button" class="b-mark" title="Record in Did as done"
               onPointerDown=${(e) => e.stopPropagation()}
@@ -1625,6 +1821,8 @@
     const Board = ({ state, view, onEdit }) => {
       const boardRef = useRef(null);
       const [drag, setDrag] = useState(null); // {kind, blockId?, col, startMin, endMin, colIndex}
+      const [hoverSlot, setHoverSlot] = useState(null); // {col, start}
+      const [nowOff, setNowOff] = useState(null); // 'up' | 'down' | null
       const [nowMin, setNowMin] = useState(() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); });
 
       useEffect(() => {
@@ -1632,12 +1830,44 @@
         return () => clearInterval(t);
       }, []);
 
+      const scrollToNow = useCallback(() => {
+        const el = boardRef.current;
+        if (!el) return;
+        el.scrollTo({ top: Math.max(0, (nowMin / 60) * view.pxPerHour - el.clientHeight / 3), behavior: 'smooth' });
+      }, [nowMin, view.pxPerHour]);
+
+      useEffect(() => {
+        window.addEventListener('planner:scroll-now', scrollToNow);
+        return () => window.removeEventListener('planner:scroll-now', scrollToNow);
+      }, [scrollToNow]);
+
+      // Show a jump chip whenever today's now-line is outside the viewport.
+      // Checked on scroll AND one frame later (auto-scroll effects settle
+      // after render — round-2 caught the chip showing beside a visible line).
+      useEffect(() => {
+        const el = boardRef.current;
+        if (!el) return;
+        let raf = 0;
+        const check = () => {
+          if (state.date !== T.todayKey()) { setNowOff(null); return; }
+          const y = (nowMin / 60) * view.pxPerHour;
+          if (y < el.scrollTop + 8) setNowOff('up');
+          else if (y > el.scrollTop + el.clientHeight - 8) setNowOff('down');
+          else setNowOff(null);
+        };
+        const deferred = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(check); };
+        deferred();
+        el.addEventListener('scroll', deferred, { passive: true });
+        return () => { cancelAnimationFrame(raf); el.removeEventListener('scroll', deferred); };
+      }, [state.date, nowMin, view.pxPerHour]);
+
       // Scroll so "now" (or 8am on other days) sits a third of the way down.
       useEffect(() => {
         const el = boardRef.current;
         if (!el) return;
-        const anchor = state.date === T.todayKey() ? nowMin : 8 * 60;
-        el.scrollTop = Math.max(0, (anchor / 60) * view.pxPerHour - el.clientHeight / 3);
+        const isTod = state.date === T.todayKey();
+        const anchor = isTod ? nowMin : 8 * 60;
+        el.scrollTop = Math.max(0, (anchor / 60) * view.pxPerHour - (isTod ? el.clientHeight / 3 : 72));
       }, [view.key, state.date]);
 
       const dayHeight = 24 * view.pxPerHour;
@@ -1648,6 +1878,15 @@
         return ((clientY - rect.top + el.scrollTop) / view.pxPerHour) * 60;
       };
 
+      // Hover ghost: show where a drag would create (desktop, not mid-drag)
+      const onColPointerMove = (e, colId) => {
+        if (drag || e.pointerType !== 'mouse') return;
+        if (e.target.closest('.block')) { setHoverSlot(null); return; }
+        const span = Math.max(view.snap, 30);
+        const start = T.clamp(T.snap(minuteFromY(e.clientY) - span / 2, view.snap), 0, 1440 - span);
+        setHoverSlot({ col: colId, start, span });
+      };
+
       // --- create by dragging on empty column space ---
       const onColPointerDown = (e, colId, colIndex) => {
         if (e.target.closest('.block')) return;
@@ -1656,6 +1895,7 @@
         const startRaw = minuteFromY(e.clientY);
         const start = T.clamp(T.snap(startRaw, view.snap), 0, 1440 - view.snap);
         const d = { kind: 'create', col: colId, colIndex, anchor: start, startMin: start, endMin: start + view.snap };
+        setHoverSlot(null);
         setDrag(d);
 
         const move = (ev) => {
@@ -1684,6 +1924,7 @@
         const dur = b.end - b.start;
         let last = { start: b.start, end: b.end, col: b.col };
         const d = { kind, blockId: b.id, col: b.col, startMin: b.start, endMin: b.end };
+        setHoverSlot(null);
         setDrag(d);
 
         const move = (ev) => {
@@ -1720,22 +1961,45 @@
 
       const hours = Array.from({ length: 24 }, (_, i) => i);
       const isToday = state.date === T.todayKey();
+      const isFocus = view.key === 'focus';
+      const dayEmpty = state.blocks.length === 0;
 
       return html`
-        <div class="board" ref=${boardRef}>
+        <div class=${`board zoom-${view.key}`} ref=${boardRef}>
           <div class="canvas" style=${`height:${dayHeight}px`}>
             <div class="rail">
-              ${hours.map(hh => hh > 0 && html`
-                <div class="hr" style=${`top:${(hh / 24) * 100}%`}>${T.railLabel(hh)}</div>
+              ${hours.map(hh => html`
+                ${hh > 0 && html`<div class="hr" style=${`top:${(hh / 24) * 100}%`}>${T.railLabel(hh)}</div>`}
+                ${isFocus && [15, 30, 45].map(q => html`
+                  <div class="qr" style=${`top:${((hh + q / 60) / 24) * 100}%`}>${hh % 12 || 12}:${q}</div>
+                `)}
               `)}
             </div>
             ${hours.map(hh => html`
               ${hh > 0 && html`<div class="gridline" style=${`top:${hh * view.pxPerHour}px`}></div>`}
-              ${view.pxPerHour >= 88 && html`<div class="gridline half" style=${`top:${(hh + 0.5) * view.pxPerHour}px`}></div>`}
+              ${view.pxPerHour >= 88 && !isFocus && html`<div class="gridline half" style=${`top:${(hh + 0.5) * view.pxPerHour}px`}></div>`}
+              ${isFocus && [0.25, 0.5, 0.75].map(f => html`<div class="gridline half" style=${`top:${(hh + f) * view.pxPerHour}px`}></div>`)}
             `)}
+            <div class="offhours" style=${`top:0;height:${7 * view.pxPerHour}px`}></div>
+            <div class="offhours" style=${`top:${22 * view.pxPerHour}px;height:${2 * view.pxPerHour}px`}></div>
+            ${dayEmpty && !drag && html`
+              <div class="empty-day" style=${`top:${8.6 * view.pxPerHour}px`}>
+                <div class="empty-card">
+                  <div class="ed-title">Nothing planned for ${T.keyToDate(state.date).toLocaleDateString([], { weekday: 'long' })}</div>
+                  <button type="button" class="ed-btn"
+                    onClick=${() => { const b = planner.addBlock('plan', 540, 600); onEdit(b); }}>+ Plan a block</button>
+                  <div class="ed-hint">or drag anywhere on the grid to create one</div>
+                </div>
+              </div>
+            `}
             ${state.columns.map((c, i) => html`
               <div class="col" key=${c.id} data-col=${c.id}
-                onPointerDown=${(e) => onColPointerDown(e, c.id, i)}>
+                onPointerDown=${(e) => onColPointerDown(e, c.id, i)}
+                onPointerMove=${(e) => onColPointerMove(e, c.id)}
+                onPointerLeave=${() => setHoverSlot(null)}>
+                ${hoverSlot && hoverSlot.col === c.id && !drag && html`
+                  <div class="slot-ghost" style=${`top:${(hoverSlot.start / 60) * view.pxPerHour}px;height:${(hoverSlot.span / 60) * view.pxPerHour}px`}>+ ${T.disp(hoverSlot.start)}</div>
+                `}
                 ${state.blocks.filter(b => b.col === c.id && !(drag && drag.blockId === b.id)).map(b => html`
                   <${Block} key=${b.id} b=${b} view=${view} colIndex=${i}
                     onEdit=${onEdit}
@@ -1749,9 +2013,14 @@
                 `}
               </div>
             `)}
-            ${isToday && html`<div class="nowline" style=${`top:${(nowMin / 60) * view.pxPerHour}px`}></div>`}
+            ${isToday && html`<div class="nowline" data-time=${T.disp(nowMin)} style=${`top:${(nowMin / 60) * view.pxPerHour}px`}></div>`}
           </div>
         </div>
+        ${nowOff && html`
+          <button type="button" class="now-chip" onClick=${scrollToNow}>
+            Now ${nowOff === 'up' ? '↑' : '↓'}
+          </button>
+        `}
       `;
     };
 
@@ -1763,7 +2032,6 @@
       const [state, setState] = useState(planner.getState());
       const [view, setView] = useState(VIEWS[1]); // 12h default
       const [editing, setEditing] = useState(null);
-      const [addingCol, setAddingCol] = useState(false);
 
       useEffect(() => {
         planner.init();
@@ -1783,7 +2051,8 @@
       state.blocks.forEach(b => { counts[b.col] = (counts[b.col] || 0) + 1; });
 
       return html`
-        <${TopBar} date=${state.date} onDate=${onDate} view=${view} onView=${setView} />
+        <${TopBar} date=${state.date} onDate=${onDate} view=${view} onView=${setView}
+          onAddColumn=${(name) => planner.addColumn(name)} />
         <div class="board-wrap">
           <div class="colheads">
             ${state.columns.map(c => html`
@@ -1797,23 +2066,6 @@
                 `}
               </div>
             `)}
-            ${addingCol ? html`
-              <input
-                class="addcol-input"
-                type="text"
-                placeholder="Column name"
-                aria-label="New column name"
-                autoFocus
-                onKeyDown=${(e) => {
-                  if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) planner.addColumn(v); setAddingCol(false); }
-                  if (e.key === 'Escape') setAddingCol(false);
-                }}
-                onBlur=${(e) => { const v = e.target.value.trim(); if (v) planner.addColumn(v); setAddingCol(false); }}
-              />
-            ` : html`
-              <button type="button" class="btn-addcol" title="Add column" aria-label="Add column"
-                onClick=${() => setAddingCol(true)}>+</button>
-            `}
           </div>
           <${Board} state=${state} view=${view} onEdit=${setEditing} />
         </div>
